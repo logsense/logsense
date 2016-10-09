@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+  <classpathentry kind="src" path="src" output="bin" including="**/*.java"/>
+  <classpathentry kind="src" path="test" including="**/*.java"/>
+  
+</classpath>

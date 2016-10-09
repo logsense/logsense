@@ -1,0 +1,37 @@
+#**
+ *  Render the bottom section of the page visible to users
+ *#
+
+<hr/>
+<div>
+  <span>Options:</span>
+
+  #if($request.params.get('debugQuery'))
+    <a href="#url_for_home?#q#if($list.size($request.params.getParams('fq')) > 0)&#fqs($request.params.getParams('fq'))#end">
+      disable debug</a>
+  #else
+    <a href="#url_for_lens&debugQuery=true&fl=*,score">
+      enable debug</a>
+  #end
+  -
+  #if($annotate)
+    <a href="#url_for_home?#q#if($list.size($request.params.getParams('fq')) > 0)&#fqs($request.params.getParams('fq'))#end#boostPrice">
+      disable annotation</a>
+  #else
+    <a href="#url_for_lens&annotateBrowse=true">
+      enable annotation</a>
+  #end
+  -
+  <a #annTitle("Click to switch to an XML response: &wt=xml") href="#url_for_lens&wt=xml#if($request.params.get('debugQuery'))&debugQuery=true#end">
+    XML results</a>
+
+</div>
+
+#**
+*
+*#
+<script type="text/javascript">
+</script>
+
+
+

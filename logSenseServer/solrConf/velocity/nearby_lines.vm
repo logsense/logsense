@@ -1,0 +1,487 @@
+#**
+* show nearby lines
+*
+* @author am
+*
+*#
+
+<script type="text/javascript">
+
+
+
+var nearby = {
+	
+		// "/solr/collection1/query?q=recordNum:[X TO Y]&sort=lineNum+asc&fl=id,lineNum,recordNum,record,cat,sessionId,requestId,msec"
+		
+		max : function(i, j)
+		{
+			if (i >= j)
+				return i;
+			else
+				return j;
+		}
+		
+		,
+		show: function (ul, from, to, dir, fileName) 
+		{
+			
+			try
+			{
+				//previously, we were allowing only one time add. now we let the user pull more than once
+				// if(ul && $(ul).children().length == 0)
+				if (ul)
+				{
+					// for prev items, we will be prepending li's to ul, so having data in desc order of recordNum will help
+					// for next items (dir > 0), we will be appending li's to ul
+					var sortOrder = dir < 0? "recordNum desc" : "recordNum asc" ;
+
+					var request = $.ajax( {
+						url: "/solr/collection1/query" // this search handler will return results in json format
+						// , dataType: 'json' // return value type
+						, type: 'get'
+						, data: { sort :  sortOrder // "recordNum asc" // data will be placed on page in this order "recordNum asc"
+								, fl : "id,lineNum,recordNum,record,cat,sessionId,requestId,msec,fileName" 
+								, q : 'recordNum:[' + from + ' TO ' + to + ' ] AND fileName:"' + fileName + '"'
+								}
+					}).done(function(response) {
+						//alert( "success" );
+						if (ul) {
+							// var foo = $('<pre>').text(response).appendTo($(ul));
+							nearby.addHtmlResponse($(ul), response, dir);
+			              	 $(ul).css('display', 'inline-block');
+						}
+						
+					}).fail(function( jqXHR, textStatus ) {
+						alert( "Request failed: " + textStatus );
+					}).always(function() {
+						//alert( "complete" );
+					});
+				
+				} // if ul has no children
+				else if (ul) {
+			         $(ul).css('display', 'inline-block');
+				}
+			
+			} catch (err) { alert(err); }
+			
+		} // show
+		
+		
+		// add html response. add each as li to ul
+		, addHtmlResponse : function (ul, jsonStr, dir)
+		{
+			try
+			{
+				var element2FocusAtEnd = null;
+				if (!jsonStr) {
+					$(ul).html('<li>There is no data for this in our logs</li>');
+					return;
+				}
+				var parsed = $.parseJSON(jsonStr);
+				
+				// if no data returned, show  the json string
+				if (!parsed || !parsed.response || !parsed.response.docs || parsed.response.docs.length == 0) 
+				{
+					// $(ul).html(' <pre> ' + jsonStr + ' </pre> ');
+					var li = $('<li>');
+					var pre = $('<pre>').text('There is no more data').appendTo(li); 
+					if (dir < 0)
+						li.prependTo(ul);
+					else
+						li.appendTo(ul);
+					return;
+				}
+				
+				// parsed.response.docs is non null
+				var docs = parsed.response.docs;
+				
+				/*
+				each value looks like this
+				{
+			        "id":"jetty-0.log.ohio-wwwssl40.andes.com.12345.gz-1165",
+			        "lineNum":1165,
+			        "recordNum":1100,
+			        "record":"DB INSTANCE: { call package.method( ?, ?, ?, ?, ...) } -  millis = 21 elapsed Tue Sep 03 04:00:13 PDT 2013  Params: {1='123', 2=2, 3= NULL , 4='456', ... }   SessionID: abcde   RequestID: 1234 ",
+			        "cat":"DB INSTANCE",
+			        "sessionId":"abcde",
+			        "requestId":"1234",
+			        "fileName":"jetty-0.log.ohio-wwwssl40.andes.com.12345.gz"
+			        "msec":21}
+        
+        		*/
+        		
+        		// prevNextClass will be the link to add to first or last elem of the list
+				var prevNextClass;
+				if (dir > 0) 
+				{
+					prevNextClass = "nextNearby";
+				}
+				else 
+				{
+					prevNextClass = "prevNearby";
+				}
+				
+				var i;
+				for (i = 0; i < docs.length; ++i) {
+					 // do something with docs[i]
+					 var value = docs[i];
+					 
+					 /*
+					 	<div class="wm-result-item-title" recordNum="$!recordNum">
+							// prev/next record if appropriate
+							<ul class="prevRecords"></ul> OR nextRecords
+							<div class="result-title">title
+							</div>
+							<!-- actions for nearby records -->
+							<div class="showNearby">
+								<div class="showPrev">show-prev</div> OR
+								<div class="showNext">show-next</div>
+							</div>
+						</div>
+					 */
+					 var li = $('<li>')
+					 , wmResultItemTitle = $('<div>').addClass('wm-result-item-title').attr('recordNum', value.recordNum).attr('fileName', value.fileName).appendTo(li)
+					 , title = $('<div>').addClass('result-title').text(value.id).appendTo(wmResultItemTitle);
+					 
+						
+					/*
+						results have been returned sorted by recordNum asc regardless of dir
+						
+						if dir > 0, and this is the last record
+						OR  
+							dir < 0, and this is the first record
+							
+						have background image of prevNextClass show the arrow
+						
+						old:
+						if ( (dir > 0 && ( i == docs.length -1 ) && value.recordNum && value.recordNum >= 1)
+					 	|| (dir < 0 && ( i == 0 ) && value.recordNum && value.recordNum >= 1) )
+					*/
+					
+					if (  ( i == docs.length -1 ) && value.recordNum && value.recordNum > 1)
+					{
+					
+						/*
+							<!-- actions for nearby records - child of wmResultItemTitle -->
+							<div class="showNearby">
+								<div class="prevNearby">show-prev</div> OR
+								<div class="nextNearby">show-next</div>
+							</div>
+						*/
+						
+						
+						var divShowNearby = $('<div>').addClass('showNearby').appendTo(wmResultItemTitle)
+						, aPrevNext = $('<div>').addClass(prevNextClass).text(" ").appendTo(divShowNearby);
+						// , aPrevNext = $('<a>').addClass(prevNextClass).text("prev/next").attr('href', '\#').appendTo(divShowNearby);
+						
+						$(aPrevNext).on('click', function() {
+							var selector = dir < 0? '.prevRecords' : '.nextRecords' ;
+				    		nearby.showNearbyL2( aPrevNext , selector, dir, 10);
+				    		return false;
+				    	});
+				    	
+				    	// a div needs a tabindex, else focus will not work
+						var unique = new Date().getTime();
+						$(divShowNearby).attr('tabindex', unique);
+						
+				    	$ (divShowNearby ).show();
+				    	
+				    	element2FocusAtEnd = divShowNearby;
+				    	
+						
+					}
+					
+					var divRec = $('<div>').addClass('showMoreRecord').html(value.record.replace(/\n/g, '<br/>')).appendTo(li) ;
+					if (value.msec)
+						var divMsec = $('<div>').addClass('showMoreMsec').text(value.msec + " msec").appendTo(li);
+						
+					// $(ul).append(li);
+					
+					if (dir < 0)
+						$( li ).prependTo( $( ul ) );
+					else
+						$( li ).appendTo( $( ul ) );
+				}
+				
+				$(ul).show();
+				
+				/*  skip this
+				if (element2FocusAtEnd) {
+					$( element2FocusAtEnd ).slideDown(1000,function(){
+                     $(this).focus();
+        
+                  });
+				}
+				*/
+				
+			} catch (err) { alert(err); }
+			
+			
+		}
+		
+		// showNearbyL1 and showNearbyL2 will call this
+		,
+
+		showNearby : function(clickedElem, clickedRecordNum, fileName, ul, dir, numRecords)
+		{
+			/*
+				e.g., showNearby( $ ( this ) , 'prevRecords', -1, 10);
+				or showNearby( $ ( this ) , 'nextRecords', +1, 10);
+				
+				dir == direction. -ve is prev, +ve is next
+			*/
+			
+			/*
+	    		find closest parent with class wm-result-item
+	    		find its child ul with class prevRecords/nextRecords (ulSelector)
+	    		set from and to
+	    		get results from server
+	    		display each as an li of this ul 
+    		*/
+			
+			try
+			{
+					
+				// start and end
+				
+				
+				var end = 0;
+				var start = 0;
+				if (dir < 0)
+				{
+					start = nearby.max(1, clickedRecordNum-1);
+					end = nearby.max(1, clickedRecordNum-numRecords);
+					
+					
+				}
+				else
+				{
+					start = clickedRecordNum + 1; //force integer arith
+					end = clickedRecordNum + numRecords;
+				}
+				
+				// these two are true only if dir < 0
+				if (start < 1 || start == clickedRecordNum)
+				{
+					// display error message
+					alert("there is no more data to show. start=" + start);
+					return false;
+				}
+				if (end < 1 || end == clickedRecordNum)
+				{
+					// display error message
+					alert("there is no more data to show. end=" + end);
+					return false;
+				}
+				
+				var from, to;
+				if (start < end)
+				{
+					from = start; 
+					to = end;
+				}
+				else
+				{
+					from = end;
+					to = start;
+				}
+				
+		    	nearby.show(ul, from, to, dir, fileName);
+		    	$( clickedElem ).hide();
+		    	return false;
+		    	
+			} catch (err) { alert(err); }
+		}
+		
+		, showNearbyL1 : function(clickedElem, ulSelector, dir, numRecords)
+		{
+			/*
+				e.g., showNearby( $ ( this ) , 'prevRecords', -1, 10);
+				or showNearby( $ ( this ) , 'nextRecords', +1, 10);
+				
+				dir == direction. -ve is prev, +ve is next
+			*/
+			
+			/*
+	    		find closest parent with class wm-result-item
+	    		find its child ul with class prevRecords/nextRecords (ulSelector)
+	    		set from and to
+	    		get results from server
+	    		display each as an li of this ul 
+    		*/
+			
+			try
+			{
+				var wmResultItemTitle = $(clickedElem).closest('.wm-result-item-title');
+				var recordNum = parseInt($(wmResultItemTitle).attr('recordNum'))
+				, fileName = $(wmResultItemTitle).attr('fileName');
+				var ul = $(clickedElem).closest('.result-document').find(ulSelector); // $(wmResultItemTitle).find(ulSelector);
+				nearby.showNearby(clickedElem, recordNum, fileName, ul, dir, numRecords);
+			} catch (err) { alert(err); }
+		}
+		
+		, showNearbyL2 : function(clickedElem, ulSelector, dir, numRecords)
+		{
+			try
+			{
+				// wmResultItemTitle has the recordNum
+				var wmResultItemTitle = $(clickedElem).closest('.wm-result-item-title')
+				, ul = $(clickedElem).closest('ul')
+				, recordNum = $(wmResultItemTitle).attr('recordNum')
+				, fileName = $(wmResultItemTitle).attr('fileName');
+				
+				// go to the parent .wm-result-item-title
+				// wmResultItemTitle = $(wmResultItemTitle).closest('.wm-result-item-title');
+				// var ul = $(wmResultItemTitle).find(ulSelector);
+				nearby.showNearby(clickedElem, recordNum, fileName, ul, dir, numRecords);
+			} catch (err) { alert(err); }
+		}
+		
+} ;
+
+
+
+var dateRange = {
+
+	showRange : function ()
+	{
+		try 
+		{
+			// /solr/query2?q=*:*&stats=true&stats.field=date&rows=0
+			var request = $.ajax( {
+						url: "/solr/query2?q=*:*&stats=true&stats.field=date&rows=0" 
+						// url: "/solr/query2?q=BENCH&stats=true&stats.field=date&rows=0" // this search handler will return results in json format
+						, type: 'get'
+						
+					}).done(function(response) {
+						
+						try
+						{
+							// add html response. add each as li to ul
+							if (!response) {
+								return;
+							}
+							var parsed = $.parseJSON(response);
+					
+							// if no data returned, do nothing
+							if (!parsed || !parsed.stats || !parsed.stats.stats_fields || !parsed.stats.stats_fields.date || parsed.stats.stats_fields.date.length == 0) 
+							{
+								return;
+							}
+					
+							/*
+								"stats":{
+								    "stats_fields":{
+								      "date":{
+								        "min":"2013-11-14T09:00:00Z",
+								        "max":"2013-11-17T09:59:59Z",
+								        "count":3201985,
+								        "missing":0,
+								        "sum":"140487054-06-10T09:51:25.999Z",
+								        "mean":"2013-11-15T18:51:24.852Z",
+								        "sumOfSquares":1.123016807525857E25,
+								        "stddev":1.872766143073454E9,
+								        "facets":{}}}}}
+							 */
+							 
+							// parsed.stats.stats_fields.date is non null
+							var dateStats = parsed.stats.stats_fields.date;
+							var minDate = dateStats.min, maxDate=dateStats.max;
+							minDate = minDate.replace(/T|Z/g, " ");
+							maxDate = maxDate.replace(/T|Z/g, " ");
+							var minDateSpan = $('<span>').addClass('date').addClass('leftSpace').text(minDate)
+							, maxDateSpan = $('<span>').addClass('date').text(maxDate)
+							, to = $('<span>').text(' to ' );
+							$('#tabs').find('.tabs-bar').append(minDateSpan).append(to).append(maxDateSpan);
+							
+					   } catch (err) { alert(err); }
+					
+					}).fail(function( jqXHR, textStatus ) {
+						alert( "Request failed: " + textStatus );
+					}).always(function() {
+						//alert( "complete" );
+					});
+					
+		} catch (err) { alert(err); }
+	}
+} ;
+	
+$( document ).ready(function() {
+
+	try
+    {
+    	
+    	$('.showPrev').click(function() {
+    		nearby.showNearbyL1( $ ( this ) , '.prevRecords', -1, 10);
+    		return false;
+    	});
+    	
+    	$('.showNext').click(function() {
+    		nearby.showNearbyL1( $ ( this ) , '.nextRecords', +1, 10);
+    		return false;
+    	});
+    	
+ 
+    	
+    	$('.foo').click(function() {
+    	try 
+    	{
+    		$(this).toggleClass('recordShow').toggleClass('recordPartial');
+    		
+    	} catch (err) { alert(err); }
+    	
+    	
+    	});
+    	
+    	dateRange.showRange();
+    		
+    } catch (err) { alert(err); }
+    
+});
+    
+</script>
+
+
+<script>
+
+/*
+// for delayed data, refresh every 5 minutes; for live, refresh every 1 min
+// TODO add a button so user can disable / toggle reload 
+setTimeout(function(){
+   window.location.reload(1);
+}, 300000);
+*/
+
+/* for displaying the last 5 minutes (live logs)
+
+setTimeout(function(){
+
+    var currentUrl=window.location.href;
+    if (currentUrl.toLowerCase().indexOf('noreload') >= 0)
+    {
+        // no op
+    }
+    else if (currentUrl.indexOf('last5') < 0)
+        window.location.reload(1);
+    else
+    {
+            var d = new Date();
+            var timeNew = d.getTime() - (8 * 3600 * 1000);
+            d = new Date(timeNew);
+            var foo = "fq=date:%5B" + d.toISOString()+ "-5MINUTES+TO+*%7D" ;
+            // console.log(foo);
+            // console.log(currentUrl);
+            if (currentUrl.indexOf('fq=date') >= 0)
+                currentUrl = currentUrl.replace(/fq=date[^&]+/ , foo);
+            else
+                currentUrl = currentUrl + "&" + foo;
+            // console.log (  currentUrl);
+            window.location.href = currentUrl;
+    }
+
+}, 60000);
+
+*/
+
+</script>
+

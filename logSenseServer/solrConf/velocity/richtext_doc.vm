@@ -1,0 +1,91 @@
+#**
+ *  Render a hit representing a Product
+ *  assumed to have a field called "name"
+ *#
+
+##set($record = $doc.getFieldValue('record'))
+##$record = $record.replaceAll("\\n"," <br> ");
+## getFirstValue
+##set ($cat  = $!{doc.getFieldValue('cat')} ) 
+## these variables are global, be careful. if next time, a value is not found, prev value will be used
+#set ($cat = "")
+#set ($requestId = "")
+#set ($sessionId = "")
+#set ($record2Use = "")
+#set ($msec = "")
+#set ($fileName = "")
+#set ($recordNum = "")
+
+#foreach($value in $doc.getFieldValues('cat'))
+	#set ($cat = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('requestId'))
+	#set ($requestId = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('sessionId'))
+	#set ($sessionId = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('msec'))
+	#set ($msec = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('record'))
+	#set ($record2Use = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('fileName'))
+	#set ($fileName = $!{esc.html($value)} )
+#end
+#foreach($value in $doc.getFieldValues('recordNum'))
+	#set ($recordNum = $!{esc.html($value)} )
+#end
+
+#if ( "$!cat" == "") 
+	<!-- do nothing -->
+#else
+	#set ($cat = $cat.replaceAll(" ", "-") )
+#end
+
+<div class="wm-result-item-title" recordNum="$!recordNum" fileName="$!fileName">
+## prev records if desired will come here
+		<ul class="prevRecords"></ul>
+		<div class="result-title"><b>#field('id')</b>
+		</div>
+		<!-- actions for nearby records -->
+		<div class="showNearby">
+		#if ( "$!recordNum" != "1")
+			<div class="showPrev"></div>
+		#end
+			<div class="showNext"></div>
+		</div>
+</div>
+
+<div class="wm-result-item $!cat" requestId="$!requestId" sessionId="$!sessionId" >
+	
+
+	
+##set ($record2Use = $!{esc.html($doc.getFieldValue('record'))} )
+##set ($record2Use = $!{$doc.getFirstValue('record')} )
+
+#set($record2Use = $record2Use.replaceAll("\n", "<br />"))
+	<div class="recordWrap recordPartial">
+		<div class="record">
+			$record2Use
+		</div>
+		<div class="msec">
+			$!msec
+		</div>
+		
+		
+	</div> <!-- recordWrap -->
+	
+</div>  <!-- wm-result-item -->
+
+#parse('debug.vm')
+
+## next records if desired will come here
+	<ul class="nextRecords"></ul>
+	
+## request actions come here
+	<div class="reqActions"> </div>
+## request details come here
+	<div class="reqDetails"> </div>
+

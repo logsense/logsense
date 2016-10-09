@@ -1,0 +1,61 @@
+#**
+ *  Main entry point into the /browse templates
+ *#
+ 
+ ## this kludge ensures that when there is no query string in the url, we sort results by date asc
+ ## we can set sort to date asc in solrquery.xml; however, in that case, that param is never
+ ## overridden. we need to override it when boosting by msec, etc
+ <script type=text/javascript>
+ 	try
+ 	{
+ 		var q = window.location.search;
+ 		if (q)
+ 			q = q.replace('?', '');
+ 		if (q && q == '&q=' || q == 'q=')
+ 			q = "";
+ 			
+ 		// cat_exact -> catExact
+ 		if (q && q.indexOf("cat_exact") >= 0 ) {
+ 			q = q.replace("cat_exact", "catExact");
+ 			window.location.href = window.location.pathname + "?" + q;
+ 		}
+ 			
+ 		if (!q) {
+ 			window.location.href = window.location.pathname + "?sort=lineNum%20asc,date%20asc";
+ 			
+ 		}
+ 		
+ 	} catch (err) { alert (err); }
+ 	
+ </script>
+
+#set($searcher = $request.searcher)
+#set($params = $request.params)
+
+#set($clusters = $response.response.clusters)
+#set($mltResults = $response.response.get("moreLikeThis"))
+#set($annotate = $params.get("annotateBrowse"))
+#parse('query_form.vm')
+#parse('did_you_mean.vm')
+
+<div class="navigators">
+  #parse("facets.vm")
+</div>
+
+<div class="pagination">
+  #parse("pagination_top.vm")
+</div>
+
+## Show Error Message, if any
+<div class="error-orig-velocity">
+  #parse("error.vm")
+</div>
+
+## Render Results, actual matching docs
+<div class="results">
+  #parse("results_list.vm")
+</div>
+
+<div class="pagination">
+  #parse("pagination_bottom.vm")
+</div>

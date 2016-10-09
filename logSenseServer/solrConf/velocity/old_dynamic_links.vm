@@ -1,0 +1,115 @@
+#**
+* decorate requestId, sessionId, storedProc with links, add db links for tomcat benches, etc.
+*
+* @author am
+*
+*#
+
+<style>
+.showMoreUL { display: none; }
+</style>
+<script type="text/javascript">
+
+var dyn = {
+	
+		// "/solr/collection1/query?q=requestId:1234&sort=lineNum+asc&fl=id,lineNum,record,cat,sessionId,requestId,msec&fq=cat:DB+PROXY"
+		dbProxyPath: "/solr/collection1/query"
+		
+		,
+		show: function (ul, requestId) 
+		{
+			// var requestId = $(this).siblings('.TOMCAT-BENCH').attr('requestId');
+			// var ul = $(this).siblings('.showMoreUL');
+			
+			if(ul && $(ul).children().length == 0)
+			{
+				var request = $.ajax( {
+					url: "/solr/collection1/query" // dyn.dbProxyPath
+					// , dataType: 'json' // return value type
+					, type: 'get'
+					, data: { sort : "lineNum asc"
+							, fl : "id,lineNum,record,cat,sessionId,requestId,msec" 
+							, fq : "catExact: 'DB PROXY'"
+							, q : requestId
+							}
+				}).done(function(response) {
+					//alert( "success" );
+					if (ul) {
+						var foo = $('<pre>').text(response).appendTo($(ul));
+						$(ul).slideToggle('slow', function() {
+		                    // Animation complete.
+		              	  });
+					}
+					
+				}).fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+				}).always(function() {
+					//alert( "complete" );
+				});
+			
+			} // if ul has no children
+			else if (ul) {
+				$(ul).slideToggle('slow', function() {
+		              // Animation complete.
+		         });
+			}
+			
+			
+		} // show
+		
+		// add link for more info on this request
+		// bench == DB PROXY etc
+		, requestInfo : function (bench)
+		{
+			var benchClass= bench.replace(/\s+/g, '-');
+			var a = $('<a>').addClass('showMore').attr('bench', benchClass).attr('href', '\#').text(bench)
+    		, ul = $('<ul>').addClass('showMoreUL').addClass(benchClass);
+    		//, li = $('<li>').text('hi there').appendTo(ul);
+    		$('.TOMCAT-BENCH').parent().append(a);
+    		$('.TOMCAT-BENCH').parent().children('.reqDetails').append(ul);
+		}
+} ;
+	
+$( document ).ready(function() {
+
+	try
+    {
+    	var a = $('<a>').addClass('showMore').attr('href', '\#').text('Toggle DB PROXYs')
+    	, ul = $('<ul>').addClass('showMoreUL');
+    	//, li = $('<li>').text('hi there').appendTo(ul);
+    	$('.TOMCAT-BENCH').parent().append(a).append(ul);
+    	
+    	$('.showMore').click(function() {
+    		var requestId = $(this).siblings('.TOMCAT-BENCH').attr('requestId');
+			var ul = $(this).siblings('.showMoreUL');
+    		dyn.show(ul, requestId);
+    		return false;
+    	});
+    	
+    	$('.showMore0').click(function() {
+        
+              var ul = $(this).siblings('.showMoreUL');
+              if (ul) {
+            	  // if there is no data yet, get the data
+            	  if ($(ul).children().length == 0)
+            	  {
+            		  // fetch children and add them as li here
+            		  // for testing, just add stuff
+            		  $foo = $('<li>Child-1</li><li>Child-2</li>');
+            		  $(ul).append($foo);
+            	  }
+            	  $(ul).slideToggle('slow', function() {
+                    // Animation complete.
+              	  });
+              } // if ul
+              // $(this).toggleClass('hdrOpen');
+              
+              return false;
+            
+        });
+    		
+    } catch (err) { alert(err); }
+    
+});
+    
+</script>

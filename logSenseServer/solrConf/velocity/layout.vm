@@ -1,0 +1,34 @@
+#**
+ *  Overall HTML page layout
+ *#
+
+<html>
+<head>
+  #parse("head.vm")
+</head>
+  <body>
+    <div id="admin"><a href="#url_root/#/#core_name">Admin</a></div>
+    <div id="header">
+      #parse("header.vm")
+    </div>
+    <div id="tabs">
+      #parse("tabs.vm")
+    </div>
+    <div id="content">
+      $content
+    </div>
+    <div id="footer">
+      #parse("footer.vm")
+    </div>
+  </body>
+</html>
+
+#**
+* decorate requestId, sessionId, storedProc with links, add db links for tomcat benches, etc.
+*#
+#parse("dynamic_links.vm")
+
+#**
+* browse nearby log lines.
+*#
+#parse("nearby_lines.vm")

@@ -1,0 +1,47 @@
+To install the LogSense backend server, please do the following.
+
+1.
+Download Solr from the Apache Solr website and untar/unzip it. 
+
+The Solr download url is:
+http://lucene.apache.org/solr/downloads.html
+
+2.
+Make a copy of local.properties, name it yourName.properties and change the path
+in there to the top level directory created by untarring Solr.
+
+Let this toplevel directory be $SOLR_DIR 
+
+3.
+Installation: (caution: run with this ant target (forceCopy) only once, else it will wipe out your previous index.)
+
+You will need ant 1.8.2+ for force copy to work.
+
+From command line, execute this:
+ant -Dbuild.env=yourName build.xml
+
+If no build.env is specified, it will pick up local.properties file -- so you can edit it for your purposes, but don't check it back in :-)
+ 
+If you run ant from eclipse on build.xml, specify -Dbuild.env=yourName as a VM argument, or use local.properties file.
+
+4.
+go to $SOLR_DIR/logSenseSolr and start the server:
+java -jar start.jar
+
+To increase jvm heap size, see start.sh in there. Or to run it as a cluster, see the other .sh files. Currently, those files have windows invisible chars, so instead of running them, type them in on a linux box. TODO: fix this windows/linux issue at Git level.
+
+
+5.
+To update the build:
+run ant with target as copy. In Eclipse, you can select your current config with forceCopy as target (under External Tools Config), change the target, and save it. 
+
+From command line:
+ant -Dbuild.env=yourName copy
+
+will run the target as copy in build.xml 
+
+see http://ant.apache.org/manual/running.html for command line options.
+
+
+
+

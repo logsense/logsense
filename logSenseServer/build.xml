@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="logSense" basedir="." default="copy">
+	<!--
+		copy local.properties to yourName.properties and make changes. then call ant with
+	  	 -Dbuild.env=yourName
+	  	 
+	  	 if none provided, will use local.properties
+	  	 
+	  	 after first time, change default target from forceCopy to copy
+	-->
+	
+	<condition property="build.env" value="${build.env}" else="local">
+	   <isset property="build.env" />
+	</condition>
+	
+	<property file="${basedir}/${build.env}.properties" />
+	
+	<property name="remote.logSenseSolr.dir" location="${solr.dir}/logSenseSolr"/>
+	
+	<property name="localRoot.dir" location="."/>
+	<property name="local.solrConf.dir" location="${localRoot.dir}/solrConf"/>
+	<property name="local.img.dir" location="${localRoot.dir}/img"/>
+	<property name="local.webinf.dir" location="${localRoot.dir}/WEB-INF"/>
+	
+	<property name="remote.solrConf.dir" location="${remote.logSenseSolr.dir}/solr/collection1/conf"/>
+	<property name="remote.img.dir" location="${remote.logSenseSolr.dir}/solr-webapp/webapp/img"/>
+	<property name="remote.webinf.dir" location="${remote.logSenseSolr.dir}/solr-webapp/webapp/WEB-INF"/>
+	
+	<target name="prepare" >
+		<mkdir dir="${remote.logSenseSolr.dir}" />
+		<copy todir="${remote.logSenseSolr.dir}" >
+			<fileset dir="${solr.dir}/example" />
+		</copy>
+		
+	</target>
+	
+	<target name="unzip" depends="prepare">
+		<unzip src="${remote.logSenseSolr.dir}/webapps/solr.war" 
+			dest="${remote.logSenseSolr.dir}/solr-webapp/webapp" />
+	</target>
+	
+	
+	
+	<!-- second time onwards, we use this. do not force copy. -->
+	<target name="copy" depends="prepare">
+		
+		<copy todir="${remote.solrConf.dir}">
+			<fileset dir="${local.solrConf.dir}" />
+		</copy>
+		
+		<copy todir="${remote.img.dir}">
+			<fileset dir="${local.img.dir}" />
+		</copy>
+		
+		<!--
+		<copy todir="${remote.webinf.dir}" >
+			<fileset dir="${local.webinf.dir}" />
+		</copy>
+		-->
+		
+		<!-- force copy modified log4j.properties -->
+				
+		<copy file="${localRoot.dir}/miscConf/log4j.properties" 
+			  todir="${remote.logSenseSolr.dir}/resources" 
+			  force="true"
+			  overwrite="true"
+		/>
+		
+		<copy todir="${remote.logSenseSolr.dir}" >
+			<fileset dir="${localRoot.dir}/scripts" />
+		</copy>
+		
+		
+	</target>
+	
+	<!-- create a symbolic link for the data dir if createSimLink is true 
+		does not work. placeholder.
+	-->
+	<target name="dataLink" if="createSimLink">
+			<symlink link="${remote.solrConf.dir}/../data" resource="~/indices/data"/>
+	</target>
+	
+	<target name="forceCopy" depends="forceCopy2,dataLink">
+		<echo message="forceCopy done"/>
+	</target>
+		
+	<!-- first time, or even later, force replace dest files with local files -->
+	<target name="forceCopy2" depends="prepare,unzip">
+			
+			<!-- copy
+				overwrite=true will replace these files even if dest files are newer
+				force=true will replace files even if they are read only
+			 -->
+			
+			<copy todir="${remote.solrConf.dir}" overwrite="true" force="true">
+				<fileset dir="${local.solrConf.dir}" />
+			</copy>
+			
+			<copy todir="${remote.img.dir}" overwrite="true" force="true">
+				<fileset dir="${local.img.dir}" />
+			</copy>
+			
+			<!--
+			<copy todir="${remote.webinf.dir}" overwrite="true" force="true">
+				<fileset dir="${local.webinf.dir}" />
+			</copy>
+			
+			-->
+		
+		   <!-- force copy modified log4j.properties -->
+		
+			<copy file="${localRoot.dir}/miscConf/log4j.properties" 
+				  todir="${remote.logSenseSolr.dir}/resources" 
+				  force="true"
+				  overwrite="true"
+			/>
+		
+			<!-- todo need to make files executable -->
+			<copy todir="${remote.logSenseSolr.dir}" >
+				<fileset dir="${localRoot.dir}/scripts" />
+			</copy>
+			
+		
+	</target>
+	
+	<target name="clean" >
+		<delete dir="${remote.logSenseSolr.dir}" excludes="**/data" />	
+	</target>
+	
+	
+</project>

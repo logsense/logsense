@@ -1,0 +1,192 @@
+#**
+* decorate requestId, sessionId, storedProc with links, add db links for tomcat benches, etc.
+*
+* @author am
+*
+*#
+
+<script type="text/javascript">
+
+
+
+var dyn = {
+	
+		// "/solr/collection1/query?q=requestId:es140_4734016512_89594880&sort=lineNum+asc&fl=id,lineNum,record,cat,sessionId,requestId,msec&fq=cat:DB+PROXY"
+		dbProxyPath: "/solr/collection1/query"
+		
+		,
+		show: function (ul, requestId, bench) 
+		{
+			// var requestId = $(this).siblings('.JETTY-INSTANCE').attr('requestId');
+			// var ul = $(this).siblings('.showMoreUL');
+			
+			try
+			{
+				if(ul && $(ul).children().length == 0)
+				{
+					var request = $.ajax( {
+						url: "/solr/collection1/query" // dyn.dbProxyPath
+						// , dataType: 'json' // return value type
+						, type: 'get'
+						, data: { sort : "lineNum asc"
+								, fl : "id,lineNum,record,cat,sessionId,requestId,msec" 
+								// , fq : "catExact: '" + bench + "'"
+								, q : 'cat:"' + bench + '" AND ' + requestId
+								, rows : 3000 // we are trying to get all the records. in the case even 3000 does not cover all, add pagination TODO
+								}
+					}).done(function(response) {
+						//alert( "success" );
+						if (ul) {
+							// var foo = $('<pre>').text(response).appendTo($(ul));
+							dyn.addHtmlResponse($(ul), response);
+							/*
+							$(ul).slideToggle('slow', function() {
+			                    // Animation complete.
+			              	  });
+			              	  */
+			              	  $(ul).css('display', 'inline-block');
+						}
+						
+					}).fail(function( jqXHR, textStatus ) {
+						alert( "Request failed: " + textStatus );
+					}).always(function() {
+						//alert( "complete" );
+					});
+				
+				} // if ul has no children
+				else if (ul) {
+					/*
+					$(ul).slideToggle('slow', function() {
+			              // Animation complete.
+			         });
+			         */
+			         $(ul).css('display', 'inline-block');
+				}
+			
+			} catch (err) { alert(err); }
+			
+		} // show
+		
+		// add link for more info on this request
+		// bench == DB PROXY etc
+		, addShowMore : function (bench)
+		{
+			var benchClass= bench.replace(/\s+/g, '-');
+			var a = $('<a>').addClass('showMore btn').attr('bench', benchClass).attr('href', '\#').text(bench)
+    		, ul = $('<ul>').addClass('showMoreUL').addClass(benchClass);
+ 
+    		$('.JETTY-INSTANCE').siblings('.reqActions').append(a);
+    		$('.JETTY-INSTANCE').siblings('.reqDetails').append(ul);
+		}
+		
+		// add html response. add each as li to ul
+		, addHtmlResponse : function (ul, jsonStr)
+		{
+			try
+			{
+				if (!jsonStr) {
+					$(ul).html('<li>There is no data for this in our logs</li>');
+					return;
+				}
+				var parsed = $.parseJSON(jsonStr);
+				
+				// if no data returned, show  the json string
+				if (!parsed || !parsed.response || !parsed.response.docs || parsed.response.docs.length == 0) 
+				{
+					// $(ul).html(' <pre> ' + jsonStr + ' </pre> ');
+					$(ul).html(' <pre> No matching results found in logs. </pre> ');
+					return;
+				}
+				
+				// parsed.response.docs is non null
+				var docs = parsed.response.docs;
+				
+				/*
+				each value looks like this
+				{
+			        "id":"jetty-0.log.ohio-wwwssl40.andes.com.1234.gz-1165",
+			        "lineNum":1165,
+			        "record":"DB INSTANCE: { call package.method( ?, ?, ?, ?, ...) } -  millis = 21 elapsed Tue Sep 03 04:00:13 PDT 2013  Params: {1='123', 2=2, 3= NULL , 4='456', 5=0, 6=7, 7=' O, ... }   SessionID: abcde   RequestID: 1234 ",
+			        "cat":"DB SUB",
+			        "sessionId":"abcde",
+			        "requestId":"1234",
+			        "msec":21}
+        
+        		*/
+        		
+				
+				var i;
+				for (i = 0; i < docs.length; ++i) {
+					 // do something with docs[i]
+					 var value = docs[i];
+					 var li = $('<li>'), divRec = $('<div>').addClass('showMoreRecord').html(value.record.replace(/\n/g, '<br/>')).appendTo(li) ;
+					 if (value.msec)
+						var divMsec = $('<div>').addClass('showMoreMsec').text(value.msec + " msec").appendTo(li);
+						
+					  $(ul).append(li);
+				}
+				
+			} catch (err) { alert(err); }
+			
+			
+		}
+		
+		
+} ;
+	
+$( document ).ready(function() {
+
+	try
+    {
+    	/*
+    	var a = $('<a>').addClass('showMore').attr('href', '\#').text('Toggle DB SUBs')
+    	, ul = $('<ul>').addClass('showMoreUL');
+    	$('.JETTY-INSTANCE').parent().append(a).append(ul);
+    	
+    	*/
+    	
+    	/* nested */
+    	
+    	dyn.addShowMore('DB SUB');
+    	dyn.addShowMore('DAL SERVER INSTANCE');
+    	dyn.addShowMore('SESSION INSTANCE');
+    	dyn.addShowMore('BC INSTANCE');
+    	
+    	
+    	
+    	
+    	$('.showMore').click(function() {
+    	
+    		try
+    		{
+	    		var requestId = $(this).parent().siblings('.JETTY-INSTANCE').attr('requestId'),
+	    		bench = $(this).attr('bench');
+	    		var selector = '.showMoreUL.' + bench;
+				var ul = $(this).parent().parent().find(selector);
+				
+				// hide all first
+				$(this).parent().parent().find('.showMoreUL').hide();
+				var bench2Use = bench.replace(/-/i, " ");
+	    		dyn.show(ul, requestId, bench2Use);
+	    		return false;
+    		
+    		} catch (err) { alert(err); }
+    	});
+    	
+    	
+    	$('.recordWrap').click(function() {
+    	try 
+    	{
+    		$(this).toggleClass('recordShow').toggleClass('recordPartial');
+    		
+    	} catch (err) { alert(err); }
+    	
+    	
+    	});
+    	
+    		
+    } catch (err) { alert(err); }
+    
+});
+    
+</script>

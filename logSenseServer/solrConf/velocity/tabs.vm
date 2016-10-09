@@ -1,0 +1,77 @@
+#**
+ *  Provides navigation/access to Advanced search options
+ *  Usually displayed near the top of the page
+ *#
+
+##TODO: Make some nice tabs here
+
+#set($queryOpts = $params.get("queryOpts"))
+
+<div class="tabs-bar" #annTitle("Click the link to demonstrate various Solr capabilities")>
+
+  <span>Type of Search:</span>
+
+  ##queryOpts=$queryOpts
+
+  ## return to Simple Search
+  ##set( $selected = ($queryOpts && $queryOpts != "") )
+  #set( $selected = ! $queryOpts )
+  <span class="tab #if($selected)selected#end">
+    #if($selected)
+      Standard
+    #else
+      <a href="#url_for_home/?#debug#annotate">
+        Standard</a>
+    #end
+  </span>
+
+ <!--
+  ## GEO-Spatial / Location Based
+  #set( $selected = ($queryOpts == "spatial") )
+  <span class="tab #if($selected)selected#end">
+    #if($selected)
+      Spatial
+    #else
+      <a href="#url_for_home?&queryOpts=spatial#debug#annotate">
+        Spatial</a>
+    #end
+  </span>
+  -->
+
+  ## Group By Field
+  #set( $selected = ($queryOpts == "group") )
+  <span class="tab #if($selected)selected#end">
+    #if($selected)
+      DeDuped Exceptions
+    #else
+      <a href="#url_for_home?#debug#annotate&queryOpts=group&group=true&group.field=exceptionClass">
+        DeDuped Exceptions</a>
+    #end
+  </span>
+
+<!-- if sessionId-file mapping is enabled, uncomment the following -->
+<!--
+<span class="tab #if($selected)selected#end">
+      <a title="click here to see sessionId -> logFileId mappings"
+        href="#[[#]]#"
+        onclick="change2Collection2('#url_for_home') ; return false; ">
+        SessionId Cross Reference</a>
+ </span>
+  
+-->
+
+<span class="date leftSpace"></span>
+
+<span class=tagline>Troubleshoot Root Cause</span>
+
+<script type="text/javascript">
+
+	function change2Collection2 (url)
+	{
+	        var s= url.replace(/collection1/ig, "collection2");
+	        window.location.href = s;
+	}
+
+</script>
+
+</div>
