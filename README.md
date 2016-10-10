@@ -76,5 +76,5 @@ LogSense was created by A. Mukherjee, P. G. Shankar, and S-J Lu under the guidan
 
 ## License
 
-LogSense is released under the [MIT License](https://opensource.org/licenses/MIT). Copyright 2026, LogSense.
+LogSense is released under the [MIT License](https://opensource.org/licenses/MIT). Copyright 2016, LogSense.
 
